@@ -17,16 +17,15 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from src.build_model import build_model
 
 def train(model, device, train_loader, optimizer, epoch):
-    loss_fn = torch.nn.MultiMarginLoss()
+    m = torch.nn.LogSoftmax(dim=1)
+    loss_fn = torch.nn.NLLLoss()
     model.train()
     optimizer.zero_grad()
     for batch_idx, (data, target) in enumerate(train_loader):
-        data, target = data.to(device), target.to(device)
-        # plt.imshow(torch.squeeze(data,1).permute(1, 2, 0).cpu())
-        # plt.savefig(f'test{batch_idx}.png')    
+        data, target = data.to(device), target.to(device)  
 
         output = model(data)
-        loss = loss_fn(output,target)
+        loss = loss_fn(m(output),target)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(parameters=model.parameters(), max_norm=1.0)
         grad_accumulate = 1
@@ -71,12 +70,12 @@ def main():
         transforms.ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))
         ])
-    dataset_train = datasets.MNIST('../data', train=True, 
-                                    download=True,
+    dataset_train = datasets.MNIST('./data', train=True, 
+                                    download=False,
                                     transform=transform)
                                     # target_transform=transforms.Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
-    dataset_val = datasets.MNIST('../data', train=False, 
-                                    download=True,
+    dataset_val = datasets.MNIST('./data', train=False, 
+                                    download=False,
                                     transform=transform)
                                     # target_transform=transforms.Lambda(lambda y: torch.zeros(10, dtype=torch.float).scatter_(0, torch.tensor(y), value=1)))
     
